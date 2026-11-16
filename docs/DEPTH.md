@@ -14,6 +14,7 @@
 | M4 金额分摊 | 运行样例并复核证据 | `/api/allocations/calculate` / `/allocations` | `app/modules/m4_allocations/core.py` `app/modules/m4_allocations/service.py` | `tests/test_m4_allocations.py` |
 | M5 尾差裁决 | 运行样例并复核证据 | `/api/remainders/resolve` / `/remainders` | `app/modules/m5_remainders/core.py` `app/modules/m5_remainders/service.py` | `tests/test_m5_remainders.py` |
 | M6 批次复核 | 运行样例并复核证据 | `/api/export/allocations.csv` / `/runs` | `app/modules/m6_runs/core.py` `app/modules/m6_runs/service.py` | `tests/test_m6_runs.py` |
+| M7 公示与封存 | 封存资格材料、公示项目与获资金额、撤回公示、审计查阅原件 | `/api/seals` `/api/disclosures` `/api/seals/{batch_id}/original` / `/disclosures` | `app/modules/m7_disclosures/core.py` `app/modules/m7_disclosures/service.py` | `tests/test_m7_disclosures.py` |
 
         ## 陷阱登记
 
@@ -39,3 +40,13 @@
         ## 已知不覆盖
 
         - 生产系统连接、身份认证和外部密钥不在演示范围内。
+
+        ## M7 权限与留痕边界
+
+        - 公示只含 `project_id` 与 `amount`；资格评分、否决理由与原件不下发。
+        - 角色由请求头（或请求体/查询参数）声明的演示身份决定：审计角色凭理由查阅原件，普通角色一律拒绝。
+        - 查阅先写留痕再返回原文；留痕写入或补完失败返回 503，不返回任何原文。
+        - 留痕以请求指纹唯一约束：中断后重试复用同一条记录，不重复留痕。
+        - 撤回只改公示状态：旧下载入口立即返回 410，封存证据仍可由审计角色查阅。
+        - 撤回、公示与查阅各自在独立事务内完成，按权限边界互不越权。
+        - 封存与公示只读既有资格判定，不重算资格、不改变 M2 结论，也不提供申诉裁决入口。
